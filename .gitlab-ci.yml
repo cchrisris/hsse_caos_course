@@ -1,0 +1,57 @@
+variables:
+  GIT_DEPTH: 10
+  GIT_STRATEGY: clone
+
+  YEAR: 2025
+  SEMESTER: fall
+  REPOSITORY: public-$YEAR-$SEMESTER
+
+  REGISTRY: gitlab.manytask.org:5050/mipt-caos/$REPOSITORY
+
+stages:
+  - testing
+  - review
+
+grade:
+  image: $REGISTRY/testenv-image:latest
+  rules:
+    - if: $CI_PROJECT_NAME =~ /^public-20\d\d-(fall|spring)/
+      when: never
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^submit\// || $CI_COMMIT_BRANCH =~ /^submit\//
+      when: on_success
+    - when: never
+  script:
+    - |
+      if [[ "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" == "" ]]; then
+        python3 -m checker grade . /opt/shad --branch $CI_COMMIT_BRANCH
+      else
+        python3 -m checker grade . /opt/shad --branch $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME
+      fi
+  timeout: 10 minutes
+  stage: testing
+
+approve:
+  image: $REGISTRY/testenv-image:latest
+  rules:
+    - if: $CI_PROJECT_NAME =~ /^public-20\d\d-(fall|spring)/
+      when: never
+    - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^submit\//
+      when: manual
+    - when: never
+  script:
+    - python3 -m checker review . /opt/shad --branch $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME
+  stage: review
+
+reject:
+  image: $REGISTRY/testenv-image:latest
+  rules:
+    - if: $CI_PROJECT_NAME =~ /^public-20\d\d-(fall|spring)/
+      when: never
+    - if: $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^submit\//
+      when: manual
+    - when: never
+  script:
+    - python3 -m checker review . /opt/shad --branch $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME
+  stage: review
