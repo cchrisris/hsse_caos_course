@@ -3,6 +3,7 @@ function(add_shad_executable NAME)
 
   add_executable(${NAME} ${ARGN} ${local_sources})
   set_target_properties(${NAME} PROPERTIES COMPILE_FLAGS "-Wall -Werror -Wextra -Wpedantic")
+  target_link_libraries(${NAME} PRIVATE elf)
 endfunction()
 
 function(add_shad_library NAME)
@@ -16,6 +17,6 @@ function(add_shad_shared_library NAME)
 endfunction()
 
 function(add_shad_tests TARGET)
-  add_shad_executable(${TARGET} ${ARGN} ${local_sources})
+  add_shad_executable(${TARGET} ${ARGN})
   target_link_libraries(${TARGET} PRIVATE GTest::gtest_main)
 endfunction()
