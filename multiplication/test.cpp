@@ -1,6 +1,6 @@
-#include <gtest/gtest.h>
-
 #include "multiplication.hpp"
+
+#include <gtest/gtest.h>
 
 TEST(Static, Signature) {
     static_assert(std::is_same_v<decltype(&Multiply), int64_t (*)(int, int)>,
