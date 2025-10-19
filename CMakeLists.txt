@@ -23,5 +23,6 @@ endfunction()
 
 add_if_exists(private)
 
+add_if_exists(multiplication)
 add_if_exists(strip)
 add_if_exists(patchelf)
