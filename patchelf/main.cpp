@@ -174,7 +174,7 @@ private:
         for (int i = 0; gelf_getdyn(dyn_data, i, &dyn) != nullptr; ++i) {
             if (dyn.d_tag == DT_RPATH || dyn.d_tag == DT_RUNPATH) {
                 std::string path = elf_strptr(elf, dynstr_index, dyn.d_un.d_val);
-                std::cout << path << '\n';;
+                std::cout << path << '\n';
                 return;
             }
         }
