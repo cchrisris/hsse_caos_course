@@ -31,6 +31,8 @@ grade:
       fi
   timeout: 10 minutes
   stage: testing
+  tags:
+    - main
 
 approve:
   image: $REGISTRY/testenv-image:latest
