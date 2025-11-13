@@ -3,16 +3,19 @@ function(add_shad_executable NAME)
 
   add_executable(${NAME} ${ARGN} ${local_sources})
   set_target_properties(${NAME} PROPERTIES COMPILE_FLAGS "-Wall -Werror -Wextra -Wpedantic")
-  target_link_libraries(${NAME} PRIVATE elf)
 endfunction()
 
 function(add_shad_library NAME)
-  add_library(${NAME} ${ARGN})
+  file(GLOB_RECURSE local_sources "src/*.cpp" "src/*.c")
+
+  add_library(${NAME} ${ARGN} ${local_sources})
   set_target_properties(${NAME} PROPERTIES COMPILE_FLAGS "-Wall -Werror -Wextra -Wpedantic")
 endfunction()
 
 function(add_shad_shared_library NAME)
-  add_library(${NAME} SHARED ${ARGN})
+  file(GLOB_RECURSE local_sources "src/*.cpp" "src/*.c")
+
+  add_library(${NAME} SHARED ${ARGN} ${local_sources})
   set_target_properties(${NAME} PROPERTIES COMPILE_FLAGS "-Wall -Werror -Wextra -Wpedantic")
 endfunction()
 
