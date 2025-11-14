@@ -1,6 +1,6 @@
 ---
 Checks: '-*,cppcoreguidelines-avoid-goto,cppcoreguidelines-pro-type-const-cast, google-readability-casting, google-runtime-int, modernize-replace-random-shuffle, modernize-use-nullptr, readability-braces-around-statements, readability-container-size-empty, readability-redundant-control-flow, readability-redundant-string-init, readability-identifier-naming, readability-implicit-bool-conversion, google-build-using-namespace'
-HeaderFilterRegex: '\.(hpp|h)$'
+HeaderFilterRegex: '\.hpp$'
 WarningsAsErrors: '*'
 CheckOptions:
   - key: readability-identifier-naming.NamespaceCase
