@@ -32,7 +32,7 @@ grade:
   timeout: 10 minutes
   stage: testing
   tags:
-    - main
+    - firejail
 
 approve:
   image: $REGISTRY/testenv-image:latest
