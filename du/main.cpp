@@ -266,39 +266,39 @@ public:
     }
 
 private:
-bool HandleFinishedDirectory() {
-    DirectoryIterator& top = stack_.top();
+    bool HandleFinishedDirectory() {
+        DirectoryIterator& top = stack_.top();
 
-    bool should_output = config_.summarize_only ? top.IsRoot() : true;
+        bool should_output = config_.summarize_only ? top.IsRoot() : true;
 
-    struct stat dir_st{};
-    int res = 0;
+        struct stat dir_st{};
+        int res = 0;
 
-    if (config_.dereference) {
-        res = stat(top.DirectoryPath().data(), &dir_st);
-    } else {
-        res = lstat(top.DirectoryPath().data(), &dir_st);
+        if (config_.dereference) {
+            res = stat(top.DirectoryPath().data(), &dir_st);
+        } else {
+            res = lstat(top.DirectoryPath().data(), &dir_st);
+        }
+
+        if (res != 0) {
+            std::memset(&dir_st, 0, sizeof(dir_st));
+        }
+
+        uint64_t total_size = top.TotalSize() + static_cast<uint64_t>(dir_st.st_size);
+
+        if (should_output) {
+            current_value_ = DuDirectoryEntry(top.DirectoryPath(), dir_st, total_size);
+            is_valid_ = true;
+        }
+
+        stack_.pop();
+
+        if (!stack_.empty()) {
+            stack_.top().AddToTotal(total_size);
+        }
+
+        return should_output;
     }
-
-    if (res != 0) {
-        std::memset(&dir_st, 0, sizeof(dir_st));
-    }
-
-    uint64_t total_size = top.TotalSize() + static_cast<uint64_t>(dir_st.st_size);
-
-    if (should_output) {
-        current_value_ = DuDirectoryEntry(top.DirectoryPath(), dir_st, total_size);
-        is_valid_ = true;
-    }
-
-    stack_.pop();
-
-    if (!stack_.empty()) {
-        stack_.top().AddToTotal(total_size);
-    }
-
-    return should_output;
-}
 
     bool HandleNextEntry(DirectoryIterator& top) {
         DuDirectoryEntry entry = *top;
