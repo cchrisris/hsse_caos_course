@@ -16,7 +16,7 @@
 #include <sys/ioctl.h>
 #include <sys/types.h>
 
-namespace Constants {
+namespace constants {
 
 constexpr int kPidColumnWidth = 5;
 constexpr int kUserColumnWidth = 8;
@@ -44,7 +44,7 @@ constexpr int kTwoDigitWidth = 2;
 constexpr int64_t kKilobytesPerMegabyte = 1024;
 constexpr int64_t kKilobytesPerGigabyte = 1024 * 1024;
 
-}  // namespace Constants
+}  // namespace constants
 
 struct ProcessInfo {
     pid_t pid = 0;
@@ -88,28 +88,28 @@ std::string FormatTimeFromTicks(int64_t ticks, int64_t ticks_per_second) {
     if (ticks_per_second <= 0) {
         return "0:00.00";
     }
-    int64_t total_centiseconds = (ticks * Constants::kHundred) / ticks_per_second;
-    int64_t centiseconds = total_centiseconds % Constants::kHundred;
-    int64_t total_seconds = total_centiseconds / Constants::kHundred;
-    int64_t seconds = total_seconds % Constants::kSecondsPerMinute;
-    int64_t minutes = (total_seconds / Constants::kSecondsPerMinute) % Constants::kMinutesPerHour;
-    int64_t hours = total_seconds / Constants::kSecondsPerHour;
+    int64_t total_centiseconds = (ticks * constants::kHundred) / ticks_per_second;
+    int64_t centiseconds = total_centiseconds % constants::kHundred;
+    int64_t total_seconds = total_centiseconds / constants::kHundred;
+    int64_t seconds = total_seconds % constants::kSecondsPerMinute;
+    int64_t minutes = (total_seconds / constants::kSecondsPerMinute) % constants::kMinutesPerHour;
+    int64_t hours = total_seconds / constants::kSecondsPerHour;
 
     std::ostringstream out;
     if (hours > 0) {
-        out << hours << ':' << std::setw(Constants::kTwoDigitWidth) << std::setfill('0') << minutes;
+        out << hours << ':' << std::setw(constants::kTwoDigitWidth) << std::setfill('0') << minutes;
     } else {
         out << minutes;
     }
-    out << ':' << std::setw(Constants::kTwoDigitWidth) << std::setfill('0') << seconds << '.'
-        << std::setw(Constants::kTwoDigitWidth) << std::setfill('0') << centiseconds;
+    out << ':' << std::setw(constants::kTwoDigitWidth) << std::setfill('0') << seconds << '.'
+        << std::setw(constants::kTwoDigitWidth) << std::setfill('0') << centiseconds;
     return out.str();
 }
 
 std::string ReadUserName(uid_t uid) {
     struct passwd pwd;
     struct passwd* result = nullptr;
-    char buffer[Constants::kPasswdBufferSize];
+    char buffer[constants::kPasswdBufferSize];
 
     if (getpwuid_r(uid, &pwd, buffer, sizeof(buffer), &result) == 0 && result != nullptr &&
         pwd.pw_name != nullptr) {
@@ -257,11 +257,11 @@ std::string FormatMemoryAmount(int64_t kilobytes) {
     std::ostringstream out;
     out << std::fixed;
 
-    if (kilobytes >= Constants::kKilobytesPerGigabyte) {
-        double gigabytes = static_cast<double>(kilobytes) / Constants::kKilobytesPerGigabyte;
+    if (kilobytes >= constants::kKilobytesPerGigabyte) {
+        double gigabytes = static_cast<double>(kilobytes) / constants::kKilobytesPerGigabyte;
         out << std::setprecision(gigabytes < 10.0 ? 1 : 0) << gigabytes << 'g';
-    } else if (kilobytes >= Constants::kKilobytesPerMegabyte) {
-        double megabytes = static_cast<double>(kilobytes) / Constants::kKilobytesPerMegabyte;
+    } else if (kilobytes >= constants::kKilobytesPerMegabyte) {
+        double megabytes = static_cast<double>(kilobytes) / constants::kKilobytesPerMegabyte;
         out << std::setprecision(megabytes < 10.0 ? 1 : 0) << megabytes << 'm';
     } else {
         out << kilobytes << 'k';
@@ -270,17 +270,17 @@ std::string FormatMemoryAmount(int64_t kilobytes) {
 }
 
 void PrintHeader() {
-    std::cout << std::right << std::setw(Constants::kPidColumnWidth) << "PID" << ' ';
-    std::cout << std::left << std::setw(Constants::kUserColumnWidth) << "USER";
+    std::cout << std::right << std::setw(constants::kPidColumnWidth) << "PID" << ' ';
+    std::cout << std::left << std::setw(constants::kUserColumnWidth) << "USER";
     std::cout << std::right << ' ';
-    std::cout << std::setw(Constants::kPriorityColumnWidth) << "PR" << ' '
-              << std::setw(Constants::kNiceColumnWidth) << "NI" << ' ';
-    std::cout << std::setw(Constants::kVirtColumnWidth) << "VIRT" << ' '
-              << std::setw(Constants::kResColumnWidth) << "RES" << ' ';
+    std::cout << std::setw(constants::kPriorityColumnWidth) << "PR" << ' '
+              << std::setw(constants::kNiceColumnWidth) << "NI" << ' ';
+    std::cout << std::setw(constants::kVirtColumnWidth) << "VIRT" << ' '
+              << std::setw(constants::kResColumnWidth) << "RES" << ' ';
     std::cout << 'S' << ' ';
-    std::cout << std::setw(Constants::kCpuColumnWidth) << "%CPU" << ' '
-              << std::setw(Constants::kMemColumnWidth) << "%MEM" << ' ';
-    std::cout << std::setw(Constants::kTimeColumnWidth) << "TIME+" << ' ';
+    std::cout << std::setw(constants::kCpuColumnWidth) << "%CPU" << ' '
+              << std::setw(constants::kMemColumnWidth) << "%MEM" << ' ';
+    std::cout << std::setw(constants::kTimeColumnWidth) << "TIME+" << ' ';
     std::cout << "COMMAND" << '\n';
 }
 
@@ -321,8 +321,8 @@ std::pair<std::vector<ProcessInfo>, std::unordered_map<pid_t, int64_t>> CollectP
                   return lhs.pid < rhs.pid;
               });
 
-    if (processes.size() > Constants::kMaxPrintedRows) {
-        processes.resize(Constants::kMaxPrintedRows);
+    if (processes.size() > constants::kMaxPrintedRows) {
+        processes.resize(constants::kMaxPrintedRows);
     }
 
     return {std::move(processes), std::move(new_prev_ticks)};
@@ -332,43 +332,43 @@ void PrintProcessesTable(const std::vector<ProcessInfo>& processes) {
     PrintHeader();
 
     int terminal_width = GetTerminalWidth();
-    int fixed_columns_width = Constants::kPidColumnWidth + 1 + Constants::kUserColumnWidth + 1 +
-                              Constants::kPriorityColumnWidth + 1 + Constants::kNiceColumnWidth +
-                              1 + Constants::kVirtColumnWidth + 1 + Constants::kResColumnWidth + 1 +
-                              Constants::kSColumnWidth + 1 + Constants::kCpuColumnWidth + 1 +
-                              Constants::kMemColumnWidth + 1 + Constants::kTimeColumnWidth + 1;
+    int fixed_columns_width = constants::kPidColumnWidth + 1 + constants::kUserColumnWidth + 1 +
+                              constants::kPriorityColumnWidth + 1 + constants::kNiceColumnWidth +
+                              1 + constants::kVirtColumnWidth + 1 + constants::kResColumnWidth + 1 +
+                              constants::kSColumnWidth + 1 + constants::kCpuColumnWidth + 1 +
+                              constants::kMemColumnWidth + 1 + constants::kTimeColumnWidth + 1;
 
     int max_command_width = (terminal_width > 0 &&
-                             terminal_width - fixed_columns_width > Constants::kMinimumCommandWidth)
+                             terminal_width - fixed_columns_width > constants::kMinimumCommandWidth)
                                 ? terminal_width - fixed_columns_width
-                                : Constants::kDefaultMaxCommandWidth;
+                                : constants::kDefaultMaxCommandWidth;
 
     for (const auto& process : processes) {
-        std::cout << std::setw(Constants::kPidColumnWidth) << process.pid << ' ';
+        std::cout << std::setw(constants::kPidColumnWidth) << process.pid << ' ';
 
-        if (process.user.size() > Constants::kUserColumnWidth) {
-            std::cout << std::left << std::setw(Constants::kUserColumnWidth)
-                      << process.user.substr(0, Constants::kUserColumnWidth) << std::right;
+        if (process.user.size() > constants::kUserColumnWidth) {
+            std::cout << std::left << std::setw(constants::kUserColumnWidth)
+                      << process.user.substr(0, constants::kUserColumnWidth) << std::right;
         } else {
-            std::cout << std::left << std::setw(Constants::kUserColumnWidth) << process.user
+            std::cout << std::left << std::setw(constants::kUserColumnWidth) << process.user
                       << std::right;
         }
         std::cout << ' ';
 
-        std::cout << std::setw(Constants::kPriorityColumnWidth) << process.priority << ' '
-                  << std::setw(Constants::kNiceColumnWidth) << process.nice << ' ';
+        std::cout << std::setw(constants::kPriorityColumnWidth) << process.priority << ' '
+                  << std::setw(constants::kNiceColumnWidth) << process.nice << ' ';
 
-        std::cout << std::setw(Constants::kVirtColumnWidth) << FormatMemoryAmount(process.virt_kb)
-                  << ' ' << std::setw(Constants::kResColumnWidth)
+        std::cout << std::setw(constants::kVirtColumnWidth) << FormatMemoryAmount(process.virt_kb)
+                  << ' ' << std::setw(constants::kResColumnWidth)
                   << FormatMemoryAmount(process.rss_kb) << ' ';
 
         std::cout << process.state << ' ';
 
-        std::cout << std::fixed << std::setprecision(1) << std::setw(Constants::kCpuColumnWidth)
-                  << process.cpu_percent << ' ' << std::setw(Constants::kMemColumnWidth)
+        std::cout << std::fixed << std::setprecision(1) << std::setw(constants::kCpuColumnWidth)
+                  << process.cpu_percent << ' ' << std::setw(constants::kMemColumnWidth)
                   << process.mem_percent << ' ';
 
-        std::cout << std::setw(Constants::kTimeColumnWidth) << process.time_str << ' ';
+        std::cout << std::setw(constants::kTimeColumnWidth) << process.time_str << ' ';
 
         if (static_cast<int>(process.command.size()) > max_command_width) {
             if (max_command_width > 3) {
@@ -393,7 +393,7 @@ int main() {
         return 1;
     }
 
-    bool is_tty = isatty(STDOUT_FILENO);
+    bool is_tty = isatty(STDOUT_FILENO) != 0;
 
     std::unordered_map<pid_t, int64_t> prev_process_ticks;
     std::vector<pid_t> initial_pids = ListPids();
