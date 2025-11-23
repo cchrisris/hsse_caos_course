@@ -73,6 +73,14 @@ private:
     uint64_t size_ = 0;
 };
 
+struct DirDeleter {
+    void operator()(DIR* dir) const {
+        if (dir != nullptr) {
+            closedir(dir);
+        }
+    }
+};
+
 class DirectoryIterator {
 public:
     using iterator_category = std::input_iterator_tag;
@@ -81,15 +89,18 @@ public:
     using pointer = const value_type*;
     using reference = const value_type&;
 
-    explicit DirectoryIterator(const std::string& path)
-        : current_dir_(opendir(path.data())), root_(path) {
-        ++(*this);
+    explicit DirectoryIterator(const std::string& path) : root_(path) {
+        DIR* dir = opendir(path.data());
+        if (dir != nullptr) {
+            current_dir_ = std::shared_ptr<DIR>(dir, DirDeleter{});
+            ++(*this);
+        }
     }
 
-    ~DirectoryIterator() {
-        closedir(current_dir_);
-        current_dir_ = nullptr;
-    };
+    DirectoryIterator() = default;
+    DirectoryIterator(const DirectoryIterator&) = default;
+    DirectoryIterator& operator=(const DirectoryIterator&) = default;
+    ~DirectoryIterator() = default;
 
     bool IsValid() const {
         return has_entry_;
@@ -130,16 +141,16 @@ public:
         }
 
         has_entry_ = false;
-        dirent* entry;
-        while ((entry = readdir(current_dir_)) != nullptr) {
+        dirent* entry = nullptr;
+        while ((entry = readdir(current_dir_.get())) != nullptr) {
             const char* name = entry->d_name;
             if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) {
                 continue;
             }
             std::string full_path = JoinPath(root_, name);
             struct stat st{};
-            if (lstat(full_path.c_str(), &st) != 0) {
-                perror(full_path.c_str());
+            if (lstat(full_path.data(), &st) != 0) {
+                perror(full_path.data());
                 continue;
             }
             current_entry_ =
@@ -163,9 +174,9 @@ public:
             return false;
         }
         if (!has_entry_) {
-            return current_dir_ == other.current_dir_;
+            return current_dir_.get() == other.current_dir_.get();
         }
-        return current_dir_ == other.current_dir_ &&
+        return current_dir_.get() == other.current_dir_.get() &&
                current_entry_.Path() == other.current_entry_.Path();
     }
 
@@ -174,8 +185,8 @@ public:
     }
 
 private:
-    DIR* current_dir_;
     std::string root_;
+    std::shared_ptr<DIR> current_dir_;
     DuDirectoryEntry current_entry_;
     bool has_entry_ = false;
     bool is_root_ = false;
@@ -197,9 +208,9 @@ public:
         struct stat st{};
         int res = 0;
         if (config.dereference) {
-            res = stat(start_path.c_str(), &st);
+            res = stat(start_path.data(), &st);
         } else {
-            res = lstat(start_path.c_str(), &st);
+            res = lstat(start_path.data(), &st);
         }
         if (res == -1) {
             return;
@@ -222,7 +233,7 @@ public:
         stack_.push(root_iter);
         Process();
     }
-    
+
     bool IsValid() const {
         return is_valid_;
     }
@@ -260,20 +271,22 @@ private:
 
         bool should_output = config_.summarize_only ? top.IsRoot() : true;
 
+        struct stat dir_st{};
+        if (lstat(top.DirectoryPath().data(), &dir_st) != 0) {
+            std::memset(&dir_st, 0, sizeof(dir_st));
+        }
+
+        uint64_t total_size = top.TotalSize() + static_cast<uint64_t>(dir_st.st_size);
+
         if (should_output) {
-            struct stat dir_st{};
-            if (lstat(top.DirectoryPath().c_str(), &dir_st) != 0) {
-                std::memset(&dir_st, 0, sizeof(dir_st));
-            }
-            current_value_ = DuDirectoryEntry(top.DirectoryPath(), dir_st, top.TotalSize());
+            current_value_ = DuDirectoryEntry(top.DirectoryPath(), dir_st, total_size);
             is_valid_ = true;
         }
 
-        const uint64_t child_size = top.TotalSize();
         stack_.pop();
 
         if (!stack_.empty()) {
-            stack_.top().AddToTotal(child_size);
+            stack_.top().AddToTotal(total_size);
         }
 
         return should_output;
@@ -287,7 +300,7 @@ private:
 
         struct stat st{};
         if (config_.dereference) {
-            if (stat(entry_path.c_str(), &st) == -1) {
+            if (stat(entry_path.data(), &st) == -1) {
                 return false;
             }
         } else {
