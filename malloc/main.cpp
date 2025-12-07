@@ -192,8 +192,10 @@ public:
         while (index < BinCount) {
             if (bins_[index] != nullptr) {
                 auto node = bins_[index];
-                Remove(node);
-                return &node->meta;
+                if (node->meta.Size() == min_size || (node->meta.Size() >= min_size + constants::kMinChunkSize)) {
+                    Remove(node);
+                    return &node->meta;
+                }
             }
             ++index;
         }
@@ -410,6 +412,11 @@ void ConsolidateFastBins() {
     }
 }
 
+void ReportError(const char* message) {
+    write(STDERR_FILENO, message, strlen(message));
+    abort();
+}
+
 }  // namespace
 
 void* malloc(size_t size) {
@@ -451,7 +458,7 @@ void* realloc(void* ptr, size_t new_size) {
 
     Metadata& meta = Metadata::FromUserPtr(ptr);
     if (!meta.IsValid()) {
-        abort();
+        ReportError("invalid pointer passed to realloc\n");
     }
 
     size_t new_chunk_size = GetAlignedSize(new_size);
@@ -481,10 +488,10 @@ void free(void* ptr) {
 
     Metadata& meta = Metadata::FromUserPtr(ptr);
     if (!meta.IsValid()) {
-        abort();
+        ReportError("invalid pointer passed to free\n");
     }
     if (!meta.IsMmaped() && !meta.IsInUse()) {
-        abort();
+        ReportError("double free detected\n");
     }
 
     if (meta.IsMmaped()) {
