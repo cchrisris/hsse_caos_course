@@ -193,7 +193,8 @@ public:
             if (bins_[index] != nullptr) {
                 auto node = bins_[index];
                 while (node != nullptr) {
-                    if (node->meta.Size() == min_size || (node->meta.Size() >= min_size + constants::kMinChunkSize)) {
+                    if (node->meta.Size() == min_size ||
+                        (node->meta.Size() >= min_size + constants::kMinChunkSize)) {
                         Remove(node);
                         return &node->meta;
                     }
