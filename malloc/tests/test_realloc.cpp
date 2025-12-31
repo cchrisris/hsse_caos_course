@@ -18,4 +18,16 @@ TEST(MallocTests, Realloc) {
     ptr = realloc(ptr, 2000);
     ASSERT_TRUE(GetChunkSize(ptr) > 2000);
     free(ptr);
+
+    size_t* array_ptr = (size_t*)malloc(7 * sizeof(size_t));
+    ptr = malloc(100);
+    for (size_t i = 0; i < 7; ++i) {
+        *(array_ptr + i) = static_cast<size_t>(1 << i);
+    }
+    array_ptr = (size_t*)realloc(array_ptr, 11 * sizeof(size_t));
+    for (size_t i = 0; i < 7; ++i) {
+        ASSERT_EQ(*(array_ptr + i), static_cast<size_t>(1 << i));
+    }
+    free(ptr);
+    free(array_ptr);
 }

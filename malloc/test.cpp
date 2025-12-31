@@ -44,7 +44,7 @@
 #endif
 
 #ifndef TEST10_PATH
-#define TEST10_PATH "./test_malloc9"
+#define TEST10_PATH "./test_malloc10"
 #endif
 
 TEST(RunMalloc, TheOneAndOnly) {
