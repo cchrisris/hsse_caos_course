@@ -7,6 +7,7 @@
 #include <set>
 #include <stack>
 #include <string>
+#include <unistd.h>
 #include <utility>
 #include <vector>
 
@@ -399,31 +400,32 @@ std::pair<Config, std::vector<std::string>> ParseArgs(int argc, char** argv) {
     Config config;
     std::vector<std::string> paths;
 
-    for (int i = 1; i < argc; ++i) {
-        std::string arg = argv[i];
-        if (arg[0] != '-') {
-            paths.push_back(arg);
-            continue;
+    int opt = 0;
+    while ((opt = getopt(argc, argv, "saLh")) != -1) {
+        switch (opt) {
+            case 's':
+                config.summarize_only = true;
+                break;
+            case 'a':
+                config.all_files = true;
+                break;
+            case 'L':
+                config.dereference = true;
+                break;
+            case 'h':
+                PrintUsageAndExit(0);
+                break;
+            default:
+                PrintUsageAndExit(1);
         }
+    }
 
-        for (size_t j = 1; j < arg.size(); ++j) {
-            switch (arg[j]) {
-                case 's':
-                    config.summarize_only = true;
-                    break;
-                case 'a':
-                    config.all_files = true;
-                    break;
-                case 'L':
-                    config.dereference = true;
-                    break;
-                case 'h':
-                    PrintUsageAndExit(0);
-                    break;
-                default:
-                    PrintUsageAndExit(1);
-            }
-        }
+    if (config.summarize_only && config.all_files) {
+        PrintUsageAndExit(1);
+    }
+
+    for (int i = optind; i < argc; ++i) {
+        paths.emplace_back(argv[i]);
     }
 
     return {config, paths};
