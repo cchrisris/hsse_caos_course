@@ -41,6 +41,7 @@ constexpr int64_t kMinutesPerHour = 60;
 constexpr int64_t kSecondsPerHour = 3600;
 constexpr int kTwoDigitWidth = 2;
 
+constexpr int64_t kBytesPerKilobyte = 1024;
 constexpr int64_t kKilobytesPerMegabyte = 1024;
 constexpr int64_t kKilobytesPerGigabyte = 1024 * 1024;
 
@@ -198,8 +199,8 @@ bool ReadProcessStat(pid_t pid, int64_t page_size, int64_t ticks_per_second, Pro
     info->state = state;
     info->priority = priority;
     info->nice = nice;
-    info->virt_kb = static_cast<int64_t>(vsize) / 1024;
-    info->rss_kb = static_cast<int64_t>(rss) * page_size / 1024;
+    info->virt_kb = static_cast<int64_t>(vsize) / constants::kBytesPerKilobyte;
+    info->rss_kb = static_cast<int64_t>(rss) * page_size / constants::kBytesPerKilobyte;
     info->total_ticks = utime + stime;
     info->time_str = FormatTimeFromTicks(info->total_ticks, ticks_per_second);
     info->command = comm;
