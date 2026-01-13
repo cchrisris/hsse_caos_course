@@ -12,45 +12,57 @@ public:
     enum class Mode { PrintRPath, PrintInterpreter, SetRPath, SetInterpreter };
 
     ElfPatcher(const std::string& file_path, Mode op_mode, const std::string& new_val = {})
-        : filename(file_path), mode(op_mode), value(new_val) {
+        : filename_(file_path), mode_(op_mode), value_(new_val) {
         if (elf_version(EV_CURRENT) == EV_NONE) {
             throw std::runtime_error("failed to coordinate elf library");
         }
     }
 
     void Process() {
-        int flag = (mode == Mode::SetRPath || mode == Mode::SetInterpreter) ? O_RDWR : O_RDONLY;
-        int fd = open(filename.data(), flag);
-
-        Elf* elf = elf_begin(fd, (flag == O_RDWR) ? ELF_C_RDWR : ELF_C_READ, nullptr);
-
-        ElfChecker(elf);
-
-        if (mode == Mode::SetRPath || mode == Mode::SetInterpreter) {
-            if (elf_flagelf(elf, ELF_C_SET, ELF_F_LAYOUT) == 0) {
-                throw std::runtime_error("failed to set flags for ELF file");
-            }
+        int flag = (mode_ == Mode::SetRPath || mode_ == Mode::SetInterpreter) ? O_RDWR : O_RDONLY;
+        int fd = open(filename_.data(), flag);
+        if (fd < 0) {
+            throw std::runtime_error("failed to open file descriptor");
         }
 
-        switch (mode) {
-            case Mode::PrintRPath:
-                PrintRPath(elf);
-                break;
-            case Mode::PrintInterpreter:
-                PrintInterpreter(elf);
-                break;
-            case Mode::SetRPath:
-                SetRPath(elf);
-                if (elf_update(elf, ELF_C_WRITE) < 0) {
-                    throw std::runtime_error("failed to update ELF descriptor");
+        Elf* elf = elf_begin(fd, (flag == O_RDWR) ? ELF_C_RDWR : ELF_C_READ, nullptr);
+        if (elf == nullptr) {
+            throw std::runtime_error("failed to read ELF");
+        }
+
+        try {
+            ElfChecker(elf);
+
+            if (mode_ == Mode::SetRPath || mode_ == Mode::SetInterpreter) {
+                if (elf_flagelf(elf, ELF_C_SET, ELF_F_LAYOUT) == 0) {
+                    throw std::runtime_error("failed to set flags for ELF file");
                 }
-                break;
-            case Mode::SetInterpreter:
-                SetInterpreter(elf);
-                if (elf_update(elf, ELF_C_WRITE) < 0) {
-                    throw std::runtime_error("failed to update ELF descriptor");
-                }
-                break;
+            }
+
+            switch (mode_) {
+                case Mode::PrintRPath:
+                    PrintRPath(elf);
+                    break;
+                case Mode::PrintInterpreter:
+                    PrintInterpreter(elf);
+                    break;
+                case Mode::SetRPath:
+                    SetRPath(elf);
+                    if (elf_update(elf, ELF_C_WRITE) < 0) {
+                        throw std::runtime_error("failed to update ELF descriptor");
+                    }
+                    break;
+                case Mode::SetInterpreter:
+                    SetInterpreter(elf);
+                    if (elf_update(elf, ELF_C_WRITE) < 0) {
+                        throw std::runtime_error("failed to update ELF descriptor");
+                    }
+                    break;
+            }
+        } catch (...) {
+            elf_end(elf);
+            close(fd);
+            throw;
         }
 
         elf_end(elf);
@@ -58,9 +70,9 @@ public:
     }
 
 private:
-    std::string filename;
-    Mode mode;
-    std::string value;
+    std::string filename_;
+    Mode mode_;
+    std::string value_;
 
     void ElfChecker(Elf* elf) {
         if (elf_kind(elf) != ELF_K_ELF) {
@@ -77,14 +89,14 @@ private:
         Elf_Scn* scn = nullptr;
         while ((scn = elf_nextscn(elf, scn)) != nullptr) {
             GElf_Shdr shdr;
-            if (!gelf_getshdr(scn, &shdr)) {
+            if (gelf_getshdr(scn, &shdr) == nullptr) {
                 throw std::runtime_error("failed to retrieve section header");
             }
 
             std::string name = elf_strptr(elf, shstrndx, shdr.sh_name);
             if (name == ".interp") {
                 Elf_Data* data = elf_getdata(scn, nullptr);
-                if (!data || !data->d_buf || data->d_size == 0) {
+                if (data == nullptr || data->d_buf == nullptr || data->d_size == 0) {
                     std::cout << "" << '\n';
                     return;
                 }
@@ -97,7 +109,7 @@ private:
     }
 
     void SetInterpreter(Elf* elf) {
-        if (value.empty()) {
+        if (value_.empty()) {
             throw std::runtime_error("interpreter path must be non-empty");
         }
 
@@ -109,26 +121,26 @@ private:
         Elf_Scn* scn = nullptr;
         while ((scn = elf_nextscn(elf, scn)) != nullptr) {
             GElf_Shdr shdr;
-            if (!gelf_getshdr(scn, &shdr)) {
+            if (gelf_getshdr(scn, &shdr) == nullptr) {
                 throw std::runtime_error("failed to retrieve section header");
             }
 
             std::string name = elf_strptr(elf, shstrndx, shdr.sh_name);
             if (name == ".interp") {
                 Elf_Data* data = elf_getdata(scn, nullptr);
-                if (!data || !data->d_buf) {
+                if (data == nullptr || data->d_buf == nullptr) {
                     throw std::runtime_error("failed to get .interp data");
                 }
 
                 size_t max_len = data->d_size;
-                if (value.size() + 1 > max_len) {
+                if (value_.size() + 1 > max_len) {
                     throw std::runtime_error(
                         "new interpreter is longer than existing; resizing is not "
                         "supported");
                 }
                 char* buf = static_cast<char*>(data->d_buf);
                 std::memset(buf, '\0', max_len);
-                std::memcpy(buf, value.data(), value.size());
+                std::memcpy(buf, value_.data(), value_.size());
                 elf_flagdata(data, ELF_C_SET, ELF_F_DIRTY);
                 return;
             }
@@ -145,7 +157,7 @@ private:
         }
 
         while ((dyn_scn = elf_nextscn(elf, dyn_scn)) != nullptr) {
-            if (!gelf_getshdr(dyn_scn, &dyn_shdr)) {
+            if (gelf_getshdr(dyn_scn, &dyn_shdr) == nullptr) {
                 throw std::runtime_error("failed to retrieve section header");
             }
             if (dyn_shdr.sh_type == SHT_DYNAMIC) {
@@ -166,7 +178,7 @@ private:
         }
 
         Elf_Data* dyn_data = elf_getdata(dyn_scn, nullptr);
-        if (!dyn_data) {
+        if (dyn_data == nullptr) {
             throw std::runtime_error("failed to get .dynamic data");
         }
 
@@ -182,7 +194,7 @@ private:
     }
 
     void SetRPath(Elf* elf) {
-        if (value.empty()) {
+        if (value_.empty()) {
             throw std::runtime_error("rpath path must be non-empty");
         }
 
@@ -194,7 +206,7 @@ private:
         }
 
         Elf_Data* dyn_data = elf_getdata(dyn_scn, nullptr);
-        if (!dyn_data) {
+        if (dyn_data == nullptr) {
             throw std::runtime_error("failed to get .dynamic data");
         }
 
@@ -213,12 +225,12 @@ private:
         }
 
         Elf_Scn* dynstr_scn = elf_getscn(elf, dynstr_index);
-        if (!dynstr_scn) {
+        if (dynstr_scn == nullptr) {
             throw std::runtime_error("failed to get .dynstr section");
         }
 
         Elf_Data* dynstr_data = elf_getdata(dynstr_scn, nullptr);
-        if (!dynstr_data || !dynstr_data->d_buf) {
+        if (dynstr_data == nullptr || dynstr_data->d_buf == nullptr) {
             throw std::runtime_error("failed to get .dynstr data");
         }
 
@@ -236,19 +248,19 @@ private:
         }
 
         size_t capacity = old_len + 1;
-        if (value.size() + 1 > capacity) {
+        if (value_.size() + 1 > capacity) {
             throw std::runtime_error(
                 "new rpath is longer than existing; resizing is not supported");
         }
 
         std::memset(sbase + rpath_off, '\0', capacity);
-        std::memcpy(sbase + rpath_off, value.data(), value.size());
+        std::memcpy(sbase + rpath_off, value_.data(), value_.size());
         elf_flagdata(dynstr_data, ELF_C_SET, ELF_F_DIRTY);
     }
 };
 
 int main(int argc, char* argv[]) {
-    if (argc < 2 || argc < 3) {
+    if (argc < 3) {
         return 1;
     }
 
