@@ -191,14 +191,14 @@ private:
             throw std::runtime_error("failed to create new data descriptor");
         }
 
-        if (old_data && old_data->d_size) {
+        if (old_data != nullptr && old_data->d_size != 0) {
             new_data->d_buf = malloc(old_data->d_size);
             if (new_data->d_buf == nullptr) {
                 throw std::runtime_error("malloc failed");
             }
             allocated_buffers.push_back(new_data->d_buf);
 
-            if (old_data->d_buf) {
+            if (old_data->d_buf != nullptr) {
                 memcpy(new_data->d_buf, old_data->d_buf, old_data->d_size);
             } else {
                 memset(new_data->d_buf, 0, old_data->d_size);
@@ -225,8 +225,8 @@ private:
             return;
         }
 
-        size_t align = shdr.sh_addralign ? shdr.sh_addralign : 1;
-        if (align > 1 && next_offset_nonalloc % align) {
+        size_t align = shdr.sh_addralign != 0 ? shdr.sh_addralign : 1;
+        if (align > 1 && (next_offset_nonalloc % align) != 0) {
             next_offset_nonalloc += (align - next_offset_nonalloc % align);
         }
         shdr.sh_offset = next_offset_nonalloc;
