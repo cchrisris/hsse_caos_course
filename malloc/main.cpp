@@ -17,7 +17,7 @@ constexpr size_t kBrkSize = kMmapThreshold * 8;
 constexpr size_t kMaxSize = 1'073'741'824;  // 1GB
 
 constexpr size_t kMinChunkSize = 32;
-constexpr size_t kAlignment = 16;
+constexpr size_t kAlignment = 2 * sizeof(size_t);
 constexpr size_t kAlignmentMask = kAlignment - 1;
 
 constexpr size_t kFastMax = 104;
@@ -28,8 +28,9 @@ constexpr size_t kBinsCount = 126;
 constexpr size_t kMaxSmallBinSize = 1024;
 constexpr size_t kSmallBinStep = 16;
 constexpr size_t kSmallBinBase = 2;
-constexpr size_t kLargeBinStart = 62;
-constexpr double kBigBinBase = 1.125;
+constexpr size_t kLargeBinBase = 63;
+constexpr size_t kLargeBinsFirstCount = 32;
+constexpr size_t kLargeBinsFirstStep = 64;
 
 constexpr int kMetaSize = sizeof(size_t);
 constexpr size_t kMetaMask = static_cast<size_t>(0b111);
@@ -68,11 +69,24 @@ size_t GetBinIndex(size_t size) {
         return index >= constants::kSmallBinBase ? index - constants::kSmallBinBase : 0;
     }
 
-    double normalized =
-        static_cast<double>(size) / static_cast<double>(constants::kMaxSmallBinSize);
-    double log_val = std::log(normalized) / std::log(constants::kBigBinBase);
-    size_t index = constants::kLargeBinStart + static_cast<size_t>(log_val);
-    return index < constants::kBinsCount ? index : constants::kBinsCount - 1;
+    size_t group_min = constants::kMaxSmallBinSize;
+    size_t index = constants::kLargeBinBase;
+    size_t count = constants::kLargeBinsFirstCount;
+    size_t step = constants::kLargeBinsFirstStep;
+
+    while (count > 1) {
+        size_t group_max = group_min + count * step;
+        if (size <= group_max) {
+            size_t idx_in_group = (size - group_min - 1) / step;
+            return index + idx_in_group;
+        }
+        index += count;
+        group_min = group_max;
+        count >>= 1;
+        step <<= 3;
+    }
+
+    return index;
 }
 
 struct Node;
